@@ -53,6 +53,16 @@ export async function logout() {
   clearSession();
 }
 
+export async function changePassword(oldPass: string, newPass: string) {
+  const s = getSession();
+  const { error } = await supabase.rpc("mt_change_password", {
+    p_session: s,
+    p_old: oldPass,
+    p_new: newPass,
+  });
+  if (error) throw new Error(error.message);
+}
+
 export async function me(): Promise<User | null> {
   const s = getSession();
   if (!s) return null;

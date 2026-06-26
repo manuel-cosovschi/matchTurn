@@ -6,6 +6,7 @@ import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import {
   addPlayer,
+  changePassword,
   createTurno,
   deleteTurno,
   generateWeek,
@@ -82,13 +83,91 @@ export default function DashboardPage() {
           }}
         />
       ) : (
-        <TurnoListView
-          turnos={turnos}
-          onOpen={(id) => setSelected(id)}
-          onCreated={loadTurnos}
-        />
+        <>
+          <TurnoListView
+            turnos={turnos}
+            onOpen={(id) => setSelected(id)}
+            onCreated={loadTurnos}
+          />
+          <ChangePasswordCard />
+        </>
       )}
     </main>
+  );
+}
+
+function ChangePasswordCard() {
+  const [open, setOpen] = useState(false);
+  const [oldPass, setOldPass] = useState("");
+  const [newPass, setNewPass] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    setError(null);
+    setMsg(null);
+    try {
+      await changePassword(oldPass, newPass);
+      setOldPass("");
+      setNewPass("");
+      setMsg("Contraseña actualizada ✅");
+      setOpen(false);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Error");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <section className="mt-8 rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="flex w-full items-center justify-between text-left"
+      >
+        <span className="text-sm font-semibold text-white">🔒 Seguridad</span>
+        <span className="text-xs text-gray-400">
+          {open ? "ocultar" : "cambiar contraseña"}
+        </span>
+      </button>
+      {msg && <p className="mt-2 text-sm text-emerald-300">{msg}</p>}
+      {open && (
+        <form onSubmit={submit} className="mt-4 flex flex-col gap-3">
+          {error && (
+            <p className="rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-200">
+              {error}
+            </p>
+          )}
+          <input
+            type="password"
+            value={oldPass}
+            onChange={(e) => setOldPass(e.target.value)}
+            placeholder="Contraseña actual"
+            required
+            className="input"
+          />
+          <input
+            type="password"
+            value={newPass}
+            onChange={(e) => setNewPass(e.target.value)}
+            placeholder="Nueva contraseña (mín. 6)"
+            required
+            minLength={6}
+            className="input"
+          />
+          <button
+            type="submit"
+            disabled={busy}
+            className="rounded-xl bg-emerald-400 px-4 py-3 font-bold text-black disabled:opacity-50"
+          >
+            {busy ? "Guardando…" : "Cambiar contraseña"}
+          </button>
+        </form>
+      )}
+    </section>
   );
 }
 
