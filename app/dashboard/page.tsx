@@ -13,6 +13,7 @@ import {
   logout,
   me,
   removeSignup,
+  setWeekCancelled,
   turnoDetail,
 } from "@/lib/api";
 import { formatMatchDate, formatSchedule, timeUntil } from "@/lib/format";
@@ -424,6 +425,26 @@ function TurnoView({
     }
   }
 
+  async function onToggleCancel() {
+    if (!week?.id) return;
+    const next = !week.cancelled;
+    if (
+      next &&
+      !confirm("¿Marcar que esta fecha NO se juega? Los jugadores verán el aviso.")
+    )
+      return;
+    setBusy(true);
+    setError(null);
+    try {
+      await setWeekCancelled(week.id, next);
+      await load();
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Error");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function onGenerate() {
     if (
       week &&
@@ -499,11 +520,18 @@ function TurnoView({
         <h3 className="text-base font-bold text-white">Link de la semana</h3>
         {week ? (
           <>
-            <p className="mt-1 text-sm capitalize text-gray-300">
+            {week.cancelled && (
+              <div className="mt-2 rounded-xl border border-red-400/40 bg-red-500/15 px-3 py-2 text-sm font-semibold text-red-200">
+                ❌ Esta fecha está marcada como “no se juega”.
+              </div>
+            )}
+            <p className="mt-2 text-sm capitalize text-gray-300">
               📅 {formatMatchDate(week.match_at)}
             </p>
             <p className="mt-0.5 text-xs text-gray-400">
-              {locked
+              {week.cancelled
+                ? "Suspendida"
+                : locked
                 ? "🔒 Confirmaciones cerradas (equipo final)."
                 : `Cierra ${
                     timeUntil(week.locks_at, nowMs)
@@ -539,6 +567,19 @@ function TurnoView({
                 Generar nuevo
               </button>
             </div>
+            <button
+              onClick={onToggleCancel}
+              disabled={busy}
+              className={`mt-2 w-full rounded-lg px-3 py-2 text-xs font-semibold disabled:opacity-50 ${
+                week.cancelled
+                  ? "border border-emerald-400/40 bg-emerald-500/10 text-emerald-200"
+                  : "border border-red-400/40 bg-red-500/10 text-red-200"
+              }`}
+            >
+              {week.cancelled
+                ? "Reactivar fecha (sí se juega)"
+                : "Marcar que esta fecha no se juega"}
+            </button>
           </>
         ) : (
           <>

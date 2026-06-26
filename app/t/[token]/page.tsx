@@ -106,9 +106,12 @@ export default function PublicWeekPage({
   }, [myName, week]);
   const myStatus = mySignup?.status ?? "out";
 
+  const cancelled = !!week && week.cancelled;
   const locked =
     !!week &&
-    (week.status !== "open" || nowMs >= new Date(week.locks_at).getTime());
+    (cancelled ||
+      week.status !== "open" ||
+      nowMs >= new Date(week.locks_at).getTime());
 
   useEffect(() => {
     if (myStatus === "suplente" && !locked) {
@@ -247,7 +250,11 @@ export default function PublicWeekPage({
               }}
             />
           </div>
-          {locked ? (
+          {cancelled ? (
+            <p className="mt-2 text-xs font-semibold text-red-300">
+              ❌ Esta fecha no se juega.
+            </p>
+          ) : locked ? (
             <p className="mt-2 text-xs font-semibold text-red-300">
               🔒 Confirmaciones cerradas (falta menos de 24 h). Equipo final.
             </p>
@@ -259,6 +266,18 @@ export default function PublicWeekPage({
           )}
         </div>
       </section>
+
+      {cancelled && (
+        <section className="mb-5 rounded-2xl border border-red-400/40 bg-red-500/10 p-6 text-center">
+          <p className="text-3xl">❌</p>
+          <p className="mt-2 text-lg font-bold text-red-200">
+            Esta fecha no se juega
+          </p>
+          <p className="mt-1 text-sm text-red-100/80">
+            El organizador suspendió el partido de esta semana.
+          </p>
+        </section>
+      )}
 
       {/* Acción del jugador */}
       {!locked &&
@@ -377,26 +396,30 @@ export default function PublicWeekPage({
           </section>
         ))}
 
-      <PlayerList
-        title="✅ Convocados"
-        accent="emerald"
-        items={convocados.map((s, i) => ({
-          key: s.name + i,
-          label: `${i + 1}. ${s.name}`,
-          me: myName ? nameKey(s.name) === nameKey(myName) : false,
-        }))}
-        empty="Nadie confirmado todavía. ¡Sé el primero!"
-      />
-      <PlayerList
-        title="⏳ Suplentes"
-        accent="amber"
-        items={suplentes.map((s, i) => ({
-          key: s.name + i,
-          label: `${i + 1}. ${s.name}`,
-          me: myName ? nameKey(s.name) === nameKey(myName) : false,
-        }))}
-        empty="Sin suplentes."
-      />
+      {!cancelled && (
+        <>
+          <PlayerList
+            title="✅ Convocados"
+            accent="emerald"
+            items={convocados.map((s, i) => ({
+              key: s.name + i,
+              label: `${i + 1}. ${s.name}`,
+              me: myName ? nameKey(s.name) === nameKey(myName) : false,
+            }))}
+            empty="Nadie confirmado todavía. ¡Sé el primero!"
+          />
+          <PlayerList
+            title="⏳ Suplentes"
+            accent="amber"
+            items={suplentes.map((s, i) => ({
+              key: s.name + i,
+              label: `${i + 1}. ${s.name}`,
+              me: myName ? nameKey(s.name) === nameKey(myName) : false,
+            }))}
+            empty="Sin suplentes."
+          />
+        </>
+      )}
     </main>
   );
 }

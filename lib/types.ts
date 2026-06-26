@@ -12,6 +12,7 @@ export interface CurrentWeek {
   match_at: string;
   locks_at: string;
   status: "open" | "closed";
+  cancelled: boolean;
 }
 
 export interface TurnoSummary {
@@ -59,6 +60,7 @@ export interface PublicWeek {
   week_id: string;
   token: string;
   status: "open" | "closed";
+  cancelled: boolean;
   match_at: string;
   locks_at: string;
   now: string;

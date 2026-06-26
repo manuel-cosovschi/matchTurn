@@ -147,6 +147,16 @@ export async function removeSignup(signupId: string) {
   if (error) throw new Error(error.message);
 }
 
+export async function setWeekCancelled(weekId: string, cancelled: boolean) {
+  const s = getSession();
+  const { error } = await supabase.rpc("mt_set_week_cancelled", {
+    p_session: s,
+    p_week_id: weekId,
+    p_cancelled: cancelled,
+  });
+  if (error) throw new Error(error.message);
+}
+
 export async function generateWeek(turnoId: string): Promise<string> {
   const s = getSession();
   const { data, error } = await supabase.rpc("mt_generate_week", {
