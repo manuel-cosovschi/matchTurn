@@ -22,17 +22,20 @@ export interface TurnoSummary {
   time_of_day: string;
   capacity: number;
   created_at: string;
-  player_count: number;
   current_week: CurrentWeek | null;
 }
 
-export interface TurnoPlayer {
+/** Confirmación visible en el panel (incluye id para poder quitarla). */
+export interface AdminSignup {
   id: string;
   name: string;
+  status: SignupStatus;
+  confirmed_at: string | null;
 }
 
-export interface SignupRow {
-  player_id: string;
+/** Confirmación visible en el link público (sin id). */
+export interface PublicSignup {
+  name: string;
   status: SignupStatus;
   confirmed_at: string | null;
 }
@@ -47,9 +50,8 @@ export interface TurnoDetail {
     capacity: number;
     timezone: string;
   };
-  players: TurnoPlayer[];
   current_week: CurrentWeek | null;
-  signups: SignupRow[];
+  signups: AdminSignup[];
   now: string;
 }
 
@@ -63,8 +65,7 @@ export interface PublicWeek {
   title: string;
   location: string | null;
   capacity: number;
-  players: TurnoPlayer[];
-  signups: SignupRow[];
+  signups: PublicSignup[];
 }
 
 export const WEEKDAYS = [

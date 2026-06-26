@@ -8,8 +8,11 @@ import { formatMatchDate, timeUntil } from "@/lib/format";
 import { PlayerList } from "@/components/PlayerList";
 import type { PublicWeek } from "@/lib/types";
 
+function nameKey(n: string) {
+  return n.trim().toLowerCase();
+}
 function storageKey(weekId: string) {
-  return `mt_me_${weekId}`;
+  return `mt_name_${weekId}`;
 }
 
 export default function PublicWeekPage({
@@ -22,7 +25,8 @@ export default function PublicWeekPage({
   const [notFound, setNotFound] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [meId, setMeId] = useState<string | null>(null);
+  const [myName, setMyName] = useState<string | null>(null);
+  const [nameInput, setNameInput] = useState("");
   const [acting, setActing] = useState(false);
   const [nowMs, setNowMs] = useState(Date.now());
   const prevFree = useRef<number | null>(null);
@@ -31,9 +35,8 @@ export default function PublicWeekPage({
   const load = useCallback(async () => {
     try {
       const w = await getWeek(token);
-      if (!w) {
-        setNotFound(true);
-      } else {
+      if (!w) setNotFound(true);
+      else {
         setWeek(w);
         setNotFound(false);
       }
@@ -49,18 +52,15 @@ export default function PublicWeekPage({
     load();
   }, [load]);
 
-  // reloj para el contador y el bloqueo a 1h
   useEffect(() => {
     const t = setInterval(() => setNowMs(Date.now()), 30000);
     return () => clearInterval(t);
   }, []);
 
-  // identidad guardada por semana
   useEffect(() => {
-    if (week) setMeId(localStorage.getItem(storageKey(week.week_id)));
+    if (week) setMyName(localStorage.getItem(storageKey(week.week_id)));
   }, [week]);
 
-  // realtime sobre las confirmaciones de esta semana
   useEffect(() => {
     if (!week) return;
     const channel = supabase
@@ -98,32 +98,18 @@ export default function PublicWeekPage({
 
   const capacity = week?.capacity ?? 14;
   const freeSlots = Math.max(0, capacity - convocados.length);
-  const playerName = (id: string) =>
-    week?.players.find((p) => p.id === id)?.name ?? "—";
 
-  const signupByPlayer = useMemo(() => {
-    const m = new Map<string, string>();
-    for (const s of week?.signups ?? []) m.set(s.player_id, s.status);
-    return m;
-  }, [week]);
-
-  const sinConfirmar = useMemo(
-    () =>
-      (week?.players ?? []).filter((p) => {
-        const st = signupByPlayer.get(p.id);
-        return !st || st === "out";
-      }),
-    [week, signupByPlayer]
-  );
-
-  const me = meId ? week?.players.find((p) => p.id === meId) ?? null : null;
-  const myStatus = meId ? signupByPlayer.get(meId) ?? "out" : "out";
+  const mySignup = useMemo(() => {
+    if (!myName || !week) return null;
+    const k = nameKey(myName);
+    return week.signups.find((s) => nameKey(s.name) === k) ?? null;
+  }, [myName, week]);
+  const myStatus = mySignup?.status ?? "out";
 
   const locked =
     !!week &&
     (week.status !== "open" || nowMs >= new Date(week.locks_at).getTime());
 
-  // aviso visual de lugar liberado
   useEffect(() => {
     if (myStatus === "suplente" && !locked) {
       if (prevFree.current !== null && freeSlots > prevFree.current) {
@@ -138,23 +124,24 @@ export default function PublicWeekPage({
     prevFree.current = freeSlots;
   }, [freeSlots, myStatus, locked]);
 
-  function chooseMe(id: string) {
-    if (!week) return;
-    localStorage.setItem(storageKey(week.week_id), id);
-    setMeId(id);
-  }
-  function changeMe() {
+  function forget() {
     if (!week) return;
     localStorage.removeItem(storageKey(week.week_id));
-    setMeId(null);
+    setMyName(null);
+    setNameInput("");
   }
 
-  async function onConfirm() {
-    if (!week || !meId) return;
+  async function onConfirmNew(e: React.FormEvent) {
+    e.preventDefault();
+    if (!week) return;
+    const n = nameInput.trim();
+    if (!n) return;
     setActing(true);
     setError(null);
     try {
-      await confirmSpot(week.token, meId);
+      const res = await confirmSpot(week.token, n);
+      localStorage.setItem(storageKey(week.week_id), res.name);
+      setMyName(res.name);
       await load();
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "No se pudo confirmar");
@@ -163,13 +150,31 @@ export default function PublicWeekPage({
       setActing(false);
     }
   }
+
+  async function onReconfirm() {
+    if (!week || !myName) return;
+    setActing(true);
+    setError(null);
+    try {
+      const res = await confirmSpot(week.token, myName);
+      localStorage.setItem(storageKey(week.week_id), res.name);
+      setMyName(res.name);
+      await load();
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "No se pudo confirmar");
+      await load();
+    } finally {
+      setActing(false);
+    }
+  }
+
   async function onDrop() {
-    if (!week || !meId) return;
+    if (!week || !myName) return;
     if (!confirm("¿Seguro que te querés bajar del turno?")) return;
     setActing(true);
     setError(null);
     try {
-      await dropSpot(week.token, meId);
+      await dropSpot(week.token, myName);
       await load();
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "No se pudo bajar");
@@ -255,39 +260,66 @@ export default function PublicWeekPage({
         </div>
       </section>
 
-      {/* Identidad / acción */}
+      {/* Acción del jugador */}
       {!locked &&
-        (!meId || !me ? (
+        (!myName || myStatus === "out" ? (
           <section className="mb-5 rounded-2xl border border-emerald-400/30 bg-emerald-500/5 p-5">
-            <h3 className="mb-3 text-center text-base font-semibold text-white">
-              ¿Quién sos?
-            </h3>
-            {week?.players.length === 0 ? (
-              <p className="text-center text-sm text-gray-300">
-                El organizador todavía no cargó los jugadores.
-              </p>
+            {myName && myStatus === "out" ? (
+              <>
+                <p className="mb-3 text-center text-sm text-gray-200">
+                  Te habías bajado. ¿Querés volver a anotarte como{" "}
+                  <span className="font-semibold text-white">{myName}</span>?
+                </p>
+                <button
+                  onClick={onReconfirm}
+                  disabled={acting}
+                  className="w-full rounded-xl bg-emerald-400 px-4 py-3 font-bold text-black disabled:opacity-50"
+                >
+                  {acting ? "Confirmando…" : "Confirmar de nuevo"}
+                </button>
+                <button
+                  onClick={forget}
+                  className="mt-3 w-full text-center text-xs text-gray-400 underline"
+                >
+                  no soy {myName}
+                </button>
+              </>
             ) : (
-              <div className="grid grid-cols-2 gap-2">
-                {week?.players.map((p) => (
+              <>
+                <h3 className="mb-3 text-center text-base font-semibold text-white">
+                  Escribí tu nombre para confirmar
+                </h3>
+                <form onSubmit={onConfirmNew} className="flex flex-col gap-2">
+                  <input
+                    value={nameInput}
+                    onChange={(e) => setNameInput(e.target.value)}
+                    placeholder="Tu nombre y apellido"
+                    maxLength={40}
+                    className="rounded-xl border border-white/15 bg-white/5 px-4 py-3 text-white outline-none focus:border-emerald-400"
+                  />
                   <button
-                    key={p.id}
-                    onClick={() => chooseMe(p.id)}
-                    className="rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-sm font-medium text-white transition hover:border-emerald-400/50 hover:bg-emerald-500/10"
+                    type="submit"
+                    disabled={acting || !nameInput.trim()}
+                    className="rounded-xl bg-emerald-400 px-4 py-3 font-bold text-black transition active:scale-95 disabled:opacity-50"
                   >
-                    {p.name}
+                    {acting ? "Confirmando…" : "Confirmar que puedo jugar"}
                   </button>
-                ))}
-              </div>
+                </form>
+                <p className="mt-2 text-center text-xs text-gray-500">
+                  Si tu nombre ya aparece en la lista, agregá tu apellido o
+                  inicial.
+                </p>
+              </>
             )}
           </section>
         ) : (
           <section className="mb-5 rounded-2xl border border-white/10 bg-white/5 p-5">
             <div className="mb-3 flex items-center justify-between">
               <span className="text-sm text-gray-300">
-                Sos <span className="font-semibold text-white">{me.name}</span>
+                Sos <span className="font-semibold text-white">{myName}</span>
               </span>
-              <button onClick={changeMe} className="text-xs text-gray-400 underline">
-                cambiar
+              <button onClick={forget} className="text-xs text-gray-400 underline">
+                no soy
               </button>
             </div>
 
@@ -324,41 +356,23 @@ export default function PublicWeekPage({
               </div>
             )}
 
-            {myStatus === "out" && (
-              <div className="rounded-xl border border-white/10 bg-white/5 p-4 text-center text-sm text-gray-300">
-                ¿Podés jugar? Confirmá tu lugar.
-              </div>
-            )}
-
             <div className="mt-4 flex gap-2">
-              {myStatus === "convocado" || myStatus === "suplente" ? (
-                <>
-                  {myStatus === "suplente" && freeSlots > 0 && (
-                    <button
-                      disabled={acting}
-                      onClick={onConfirm}
-                      className="flex-1 rounded-xl bg-amber-400 px-4 py-3 font-bold text-black transition active:scale-95 disabled:opacity-50"
-                    >
-                      {acting ? "…" : "Tomar lugar"}
-                    </button>
-                  )}
-                  <button
-                    disabled={acting}
-                    onClick={onDrop}
-                    className="flex-1 rounded-xl border border-white/15 bg-white/5 px-4 py-3 font-semibold text-white transition active:scale-95 disabled:opacity-50"
-                  >
-                    {acting ? "…" : "Bajarme"}
-                  </button>
-                </>
-              ) : (
+              {myStatus === "suplente" && freeSlots > 0 && (
                 <button
                   disabled={acting}
-                  onClick={onConfirm}
-                  className="flex-1 rounded-xl bg-emerald-400 px-4 py-3 font-bold text-black transition active:scale-95 disabled:opacity-50"
+                  onClick={onReconfirm}
+                  className="flex-1 rounded-xl bg-amber-400 px-4 py-3 font-bold text-black transition active:scale-95 disabled:opacity-50"
                 >
-                  {acting ? "Confirmando…" : "Confirmar que puedo jugar"}
+                  {acting ? "…" : "Tomar lugar"}
                 </button>
               )}
+              <button
+                disabled={acting}
+                onClick={onDrop}
+                className="flex-1 rounded-xl border border-white/15 bg-white/5 px-4 py-3 font-semibold text-white transition active:scale-95 disabled:opacity-50"
+              >
+                {acting ? "…" : "Bajarme"}
+              </button>
             </div>
           </section>
         ))}
@@ -367,34 +381,22 @@ export default function PublicWeekPage({
         title="✅ Convocados"
         accent="emerald"
         items={convocados.map((s, i) => ({
-          key: s.player_id,
-          label: `${i + 1}. ${playerName(s.player_id)}`,
-          me: s.player_id === meId,
+          key: s.name + i,
+          label: `${i + 1}. ${s.name}`,
+          me: myName ? nameKey(s.name) === nameKey(myName) : false,
         }))}
-        empty="Nadie confirmado todavía."
+        empty="Nadie confirmado todavía. ¡Sé el primero!"
       />
       <PlayerList
         title="⏳ Suplentes"
         accent="amber"
         items={suplentes.map((s, i) => ({
-          key: s.player_id,
-          label: `${i + 1}. ${playerName(s.player_id)}`,
-          me: s.player_id === meId,
+          key: s.name + i,
+          label: `${i + 1}. ${s.name}`,
+          me: myName ? nameKey(s.name) === nameKey(myName) : false,
         }))}
         empty="Sin suplentes."
       />
-      {!locked && (
-        <PlayerList
-          title="⚪ Sin confirmar"
-          accent="slate"
-          items={sinConfirmar.map((p) => ({
-            key: p.id,
-            label: p.name,
-            me: p.id === meId,
-          }))}
-          empty="Todos respondieron."
-        />
-      )}
     </main>
   );
 }

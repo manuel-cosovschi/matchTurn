@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import {
-  addPlayer,
   changePassword,
   createTurno,
   deleteTurno,
@@ -13,13 +12,12 @@ import {
   listTurnos,
   logout,
   me,
-  removePlayer,
+  removeSignup,
   turnoDetail,
 } from "@/lib/api";
 import { formatMatchDate, formatSchedule, timeUntil } from "@/lib/format";
-import { PlayerList } from "@/components/PlayerList";
 import { WEEKDAYS } from "@/lib/types";
-import type { TurnoDetail, TurnoSummary, User } from "@/lib/types";
+import type { AdminSignup, TurnoDetail, TurnoSummary, User } from "@/lib/types";
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -201,7 +199,6 @@ function TurnoListView({
                 {formatSchedule(t.weekday, t.time_of_day)} · cupo {t.capacity}
               </p>
               <p className="mt-1 text-xs text-gray-500">
-                {t.player_count} jugador{t.player_count === 1 ? "" : "es"} ·{" "}
                 {t.current_week
                   ? "link de la semana activo"
                   : "sin link generado"}
@@ -351,7 +348,6 @@ function TurnoView({
 }) {
   const [detail, setDetail] = useState<TurnoDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [newName, setNewName] = useState("");
   const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState(false);
   const [nowMs, setNowMs] = useState(Date.now());
@@ -411,38 +407,15 @@ function TurnoView({
         .sort((a, b) => (a.confirmed_at ?? "").localeCompare(b.confirmed_at ?? "")),
     [detail]
   );
-  const playerName = (id: string) =>
-    detail?.players.find((p) => p.id === id)?.name ?? "—";
-
   const locked =
     !!week &&
     (week.status !== "open" || nowMs >= new Date(week.locks_at).getTime());
 
-  async function onAddPlayer(e: React.FormEvent) {
-    e.preventDefault();
-    const names = newName
-      .split(/[\n,]/)
-      .map((n) => n.trim())
-      .filter(Boolean);
-    if (names.length === 0) return;
-    setBusy(true);
-    setError(null);
-    try {
-      for (const n of names) await addPlayer(turnoId, n);
-      setNewName("");
-      await load();
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Error");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function onRemovePlayer(id: string, name: string) {
-    if (!confirm(`¿Quitar a ${name}?`)) return;
+  async function onRemoveSignup(id: string, name: string) {
+    if (!confirm(`¿Quitar a ${name} de la lista?`)) return;
     setBusy(true);
     try {
-      await removePlayer(id);
+      await removeSignup(id);
       await load();
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Error");
@@ -570,13 +543,12 @@ function TurnoView({
         ) : (
           <>
             <p className="mt-1 text-sm text-gray-300">
-              Todavía no generaste el link de esta semana.
-              {detail.players.length === 0 &&
-                " Primero cargá los jugadores abajo."}
+              Todavía no generaste el link de esta semana. Generalo y mandalo al
+              grupo: cada uno escribe su nombre para confirmar.
             </p>
             <button
               onClick={onGenerate}
-              disabled={busy || detail.players.length === 0}
+              disabled={busy}
               className="mt-3 w-full rounded-xl bg-emerald-400 px-4 py-3 font-bold text-black disabled:opacity-50"
             >
               Generar link de la semana
@@ -589,73 +561,28 @@ function TurnoView({
       {week && (
         <section className="mt-5">
           <div className="mb-2 flex items-end justify-between">
-            <h3 className="text-base font-bold text-white">En vivo</h3>
+            <h3 className="text-base font-bold text-white">Confirmados en vivo</h3>
             <span className="text-sm font-semibold text-white">
-              {convocados.length}/{capacity} convocados
+              {convocados.length}/{capacity}
             </span>
           </div>
-          <PlayerList
+
+          <SignupList
             title="✅ Convocados"
-            accent="emerald"
-            items={convocados.map((s, i) => ({
-              key: s.player_id,
-              label: `${i + 1}. ${playerName(s.player_id)}`,
-            }))}
-            empty="Nadie confirmado todavía."
+            accent="border-emerald-400/20"
+            rows={convocados}
+            onRemove={onRemoveSignup}
+            empty="Nadie confirmado todavía. Mandá el link al grupo."
           />
-          <PlayerList
+          <SignupList
             title="⏳ Suplentes"
-            accent="amber"
-            items={suplentes.map((s, i) => ({
-              key: s.player_id,
-              label: `${i + 1}. ${playerName(s.player_id)}`,
-            }))}
+            accent="border-amber-400/20"
+            rows={suplentes}
+            onRemove={onRemoveSignup}
             empty="Sin suplentes."
           />
         </section>
       )}
-
-      {/* Plantel */}
-      <section className="mt-5 rounded-2xl border border-white/10 bg-white/5 p-5">
-        <h3 className="mb-3 text-base font-bold text-white">
-          Plantel <span className="text-gray-500">({detail.players.length})</span>
-        </h3>
-        <form onSubmit={onAddPlayer}>
-          <textarea
-            value={newName}
-            onChange={(e) => setNewName(e.target.value)}
-            rows={2}
-            placeholder="Agregar jugadores (uno por línea o separados por coma)"
-            className="input mb-2 w-full"
-          />
-          <button
-            type="submit"
-            disabled={busy}
-            className="mb-4 w-full rounded-xl bg-white/10 px-4 py-2.5 font-semibold text-white disabled:opacity-50"
-          >
-            Agregar
-          </button>
-        </form>
-        <ul className="space-y-1">
-          {detail.players.map((p) => (
-            <li
-              key={p.id}
-              className="flex items-center justify-between rounded-lg bg-white/5 px-3 py-2 text-sm text-gray-200"
-            >
-              <span>{p.name}</span>
-              <button
-                onClick={() => onRemovePlayer(p.id, p.name)}
-                className="text-xs text-red-300 hover:text-red-200"
-              >
-                quitar
-              </button>
-            </li>
-          ))}
-          {detail.players.length === 0 && (
-            <li className="text-xs text-gray-500">Sin jugadores aún.</li>
-          )}
-        </ul>
-      </section>
 
       <button
         onClick={onDelete}
@@ -664,6 +591,50 @@ function TurnoView({
         Eliminar este turno
       </button>
     </div>
+  );
+}
+
+function SignupList({
+  title,
+  accent,
+  rows,
+  onRemove,
+  empty,
+}: {
+  title: string;
+  accent: string;
+  rows: AdminSignup[];
+  onRemove: (id: string, name: string) => void;
+  empty: string;
+}) {
+  return (
+    <section className={`mb-4 rounded-2xl border ${accent} bg-white/[0.03] p-4`}>
+      <h3 className="mb-2 text-sm font-semibold text-gray-200">
+        {title} <span className="text-gray-500">({rows.length})</span>
+      </h3>
+      {rows.length === 0 ? (
+        <p className="text-xs text-gray-500">{empty}</p>
+      ) : (
+        <ul className="space-y-1">
+          {rows.map((s, i) => (
+            <li
+              key={s.id}
+              className="flex items-center justify-between rounded-lg px-3 py-1.5 text-sm text-gray-200"
+            >
+              <span>
+                {i + 1}. {s.name}
+              </span>
+              <button
+                onClick={() => onRemove(s.id, s.name)}
+                className="text-xs text-red-300/80 hover:text-red-200"
+              >
+                quitar
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   );
 }
 

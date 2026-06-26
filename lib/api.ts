@@ -138,21 +138,11 @@ export async function turnoDetail(turnoId: string): Promise<TurnoDetail> {
   return unwrap(data, error) as TurnoDetail;
 }
 
-export async function addPlayer(turnoId: string, name: string) {
+export async function removeSignup(signupId: string) {
   const s = getSession();
-  const { error } = await supabase.rpc("mt_add_player", {
+  const { error } = await supabase.rpc("mt_remove_signup", {
     p_session: s,
-    p_turno_id: turnoId,
-    p_name: name,
-  });
-  if (error) throw new Error(error.message);
-}
-
-export async function removePlayer(playerId: string) {
-  const s = getSession();
-  const { error } = await supabase.rpc("mt_remove_player", {
-    p_session: s,
-    p_player_id: playerId,
+    p_signup_id: signupId,
   });
   if (error) throw new Error(error.message);
 }
@@ -175,19 +165,19 @@ export async function getWeek(token: string): Promise<PublicWeek | null> {
 
 export async function confirmSpot(
   token: string,
-  playerId: string
-): Promise<SignupStatus> {
+  name: string
+): Promise<{ status: SignupStatus; name: string }> {
   const { data, error } = await supabase.rpc("mt_confirm", {
     p_token: token,
-    p_player_id: playerId,
+    p_name: name,
   });
-  return unwrap(data, error) as SignupStatus;
+  return unwrap(data, error) as { status: SignupStatus; name: string };
 }
 
-export async function dropSpot(token: string, playerId: string) {
+export async function dropSpot(token: string, name: string) {
   const { error } = await supabase.rpc("mt_drop", {
     p_token: token,
-    p_player_id: playerId,
+    p_name: name,
   });
   if (error) throw new Error(error.message);
 }

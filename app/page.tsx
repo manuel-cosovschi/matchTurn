@@ -56,18 +56,18 @@ export default function LandingPage() {
         />
         <Step
           n={2}
-          title="Cargá el plantel"
-          text="Sumá a todos los del grupo, aunque sean más que los lugares de la cancha."
-        />
-        <Step
-          n={3}
           title="Generá el link de la semana"
           text="Con un botón creás un link nuevo y privado. Lo pasás al grupo de WhatsApp."
         />
         <Step
+          n={3}
+          title="Cada uno escribe su nombre"
+          text="No cargás ninguna lista: la gente entra al link, pone su nombre y confirma."
+        />
+        <Step
           n={4}
-          title="Confirman y listo"
-          text="Los primeros que confirman entran. Si alguien se baja, el primer suplente que confirma toma el lugar. Se cierra 1 h antes."
+          title="Los primeros entran"
+          text="Los primeros que confirman quedan convocados; el resto, suplentes. Si alguien se baja, el primer suplente que confirma toma el lugar. Se cierra 1 h antes."
         />
       </section>
 
