@@ -249,11 +249,11 @@ export default function PublicWeekPage({
           </div>
           {locked ? (
             <p className="mt-2 text-xs font-semibold text-red-300">
-              🔒 Confirmaciones cerradas (falta menos de 1 hora). Equipo final.
+              🔒 Confirmaciones cerradas (falta menos de 24 h). Equipo final.
             </p>
           ) : (
             <p className="mt-2 text-xs text-gray-400">
-              Cierra {countdown ? `en ${countdown}` : "pronto"} (1 h antes del
+              Cierra {countdown ? `en ${countdown}` : "pronto"} (24 h antes del
               partido)
             </p>
           )}

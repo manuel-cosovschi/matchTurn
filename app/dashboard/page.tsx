@@ -509,7 +509,7 @@ function TurnoView({
                     timeUntil(week.locks_at, nowMs)
                       ? "en " + timeUntil(week.locks_at, nowMs)
                       : "pronto"
-                  } · 1 h antes del partido`}
+                  } · 24 h antes del partido`}
             </p>
 
             <div className="mt-3 flex items-center gap-2 rounded-xl border border-white/10 bg-black/30 px-3 py-2">

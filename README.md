@@ -18,7 +18,7 @@ nunca entran dos al mismo lugar).
 4. La gente entra por el link (sin cuenta), elige su nombre y confirma:
    - **"✅ ¡Convocado al turno!"** si hay lugar.
    - **"⏳ No entraste a los convocados, te avisamos si se baja uno…"** si no.
-5. Todo se actualiza **en vivo**. A **1 hora del partido** las confirmaciones se
+5. Todo se actualiza **en vivo**. A **24 horas del partido** las confirmaciones se
    **cierran** y queda el equipo final.
 
 Cada semana volvés a apretar el botón para generar el link nuevo.

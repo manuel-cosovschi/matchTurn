@@ -67,7 +67,7 @@ export default function LandingPage() {
         <Step
           n={4}
           title="Los primeros entran"
-          text="Los primeros que confirman quedan convocados; el resto, suplentes. Si alguien se baja, el primer suplente que confirma toma el lugar. Se cierra 1 h antes."
+          text="Los primeros que confirman quedan convocados; el resto, suplentes. Si alguien se baja, el primer suplente que confirma toma el lugar. Se cierra 24 h antes."
         />
       </section>
 
