@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { use } from "react";
+import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { confirmSpot, dropSpot, getWeek } from "@/lib/api";
 import { formatMatchDate, timeUntil } from "@/lib/format";
@@ -420,6 +421,17 @@ export default function PublicWeekPage({
           />
         </>
       )}
+
+      <footer className="mt-10 border-t border-white/10 pt-5 text-center">
+        <Link
+          href="/"
+          target="_blank"
+          className="inline-block rounded-xl border border-emerald-400/30 bg-emerald-500/5 px-4 py-2.5 text-sm text-emerald-200 transition hover:bg-emerald-500/10"
+        >
+          Hecho con <span className="font-bold">MatchTurn</span> ⚽ — armá tu
+          turno fijo gratis →
+        </Link>
+      </footer>
     </main>
   );
 }

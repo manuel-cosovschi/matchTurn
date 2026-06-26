@@ -551,6 +551,23 @@ function TurnoView({
                 {copied ? "¡Copiado!" : "Copiar"}
               </button>
             </div>
+
+            {!week.cancelled && (
+              <a
+                href={`https://wa.me/?text=${encodeURIComponent(
+                  `⚽ ${detail.turno.title} — turno de esta semana\n📅 ${formatMatchDate(
+                    week.match_at
+                  )}${
+                    detail.turno.location ? `\n📍 ${detail.turno.location}` : ""
+                  }\n\nConfirmá tu lugar (los primeros ${capacity} juegan):\n${link}`
+                )}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-2 block w-full rounded-xl bg-[#25D366] px-4 py-3 text-center font-bold text-black"
+              >
+                Compartir por WhatsApp
+              </a>
+            )}
             <div className="mt-2 flex gap-2">
               <Link
                 href={`/t/${week.token}`}
