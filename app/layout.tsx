@@ -1,15 +1,17 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
+const OG_TITLE = "MatchTurn ⚽ — Organizá tu turno de fútbol";
+const OG_DESC =
+  "Sacá el turno fijo y que cada uno confirme desde el celu. Los primeros juegan; el resto, suplentes.";
+
 export const metadata: Metadata = {
   metadataBase: new URL("https://matchturn.click"),
-  title: "MatchTurn ⚽ — Turno fijo de fútbol",
-  description:
-    "Confirmá tu lugar para el fútbol. Los primeros quedan convocados; el resto, suplentes. Armá tu turno fijo gratis.",
+  title: OG_TITLE,
+  description: OG_DESC,
   openGraph: {
-    title: "MatchTurn ⚽ — Turno fijo de fútbol",
-    description:
-      "Confirmá tu lugar para el fútbol. Los primeros quedan convocados; el resto, suplentes.",
+    title: OG_TITLE,
+    description: OG_DESC,
     url: "/",
     siteName: "MatchTurn",
     locale: "es_AR",
@@ -17,9 +19,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "MatchTurn ⚽ — Turno fijo de fútbol",
-    description:
-      "Confirmá tu lugar para el fútbol. Armá tu turno fijo gratis.",
+    title: OG_TITLE,
+    description: OG_DESC,
   },
 };
 
