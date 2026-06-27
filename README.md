@@ -52,3 +52,10 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=...
 npm install
 npm run dev
 ```
+
+## Licencia
+
+Software **propietario**. © 2026 MatchTurn. Todos los derechos reservados.
+Prohibida la copia, distribución, modificación, ingeniería inversa o uso de la
+marca sin autorización escrita. Ver [`LICENSE`](./LICENSE) y los
+[Términos de uso](https://matchturn.click/terminos).

@@ -431,6 +431,12 @@ export default function PublicWeekPage({
           Hecho con <span className="font-bold">MatchTurn</span> ⚽ — armá tu
           turno fijo gratis →
         </Link>
+        <p className="mt-3 text-xs text-gray-600">
+          © 2026 MatchTurn ·{" "}
+          <Link href="/terminos" className="underline">
+            Términos
+          </Link>
+        </p>
       </footer>
     </main>
   );

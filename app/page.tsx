@@ -71,9 +71,15 @@ export default function LandingPage() {
         />
       </section>
 
-      <p className="mt-12 text-center text-xs text-gray-500">
-        Hecho para grupos de amigos. Gratis.
-      </p>
+      <footer className="mt-12 text-center text-xs text-gray-500">
+        <p>Hecho para grupos de amigos. Gratis.</p>
+        <p className="mt-2">
+          © 2026 MatchTurn ·{" "}
+          <Link href="/terminos" className="underline hover:text-gray-300">
+            Términos de uso
+          </Link>
+        </p>
+      </footer>
     </main>
   );
 }
