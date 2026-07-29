@@ -50,10 +50,73 @@ export interface TurnoDetail {
     time_of_day: string;
     capacity: number;
     timezone: string;
+    stats_token: string;
   };
   current_week: CurrentWeek | null;
   signups: AdminSignup[];
   now: string;
+}
+
+// ---- Estadísticas ----
+export interface Goleador {
+  name: string;
+  goles: number;
+  pj: number;
+}
+export interface Arquero {
+  name: string;
+  pj: number;
+  goles_recibidos: number;
+  vallas_invictas: number;
+  prom: number;
+}
+export interface JugadorTabla {
+  name: string;
+  pj: number;
+  g: number;
+  e: number;
+  p: number;
+  goles: number;
+  puntos: number;
+}
+export interface MatchPlayerView {
+  name: string;
+  goals: number;
+  is_gk: boolean;
+}
+export interface PartidoView {
+  id: string;
+  played_on: string;
+  team_a_name: string;
+  team_b_name: string;
+  score_a: number;
+  score_b: number;
+  mvp: string | null;
+  team_a: MatchPlayerView[];
+  team_b: MatchPlayerView[];
+}
+export interface Stats {
+  goleadores: Goleador[];
+  arqueros: Arquero[];
+  jugadores: JugadorTabla[];
+  partidos: PartidoView[];
+  totales: { partidos: number; jugadores: number; goles: number };
+}
+export interface PublicStats {
+  title: string;
+  location: string | null;
+  stats: Stats;
+}
+
+/** Payload para cargar un partido. */
+export interface RecordMatchInput {
+  played_on: string;
+  team_a_name: string;
+  team_b_name: string;
+  score_a: number;
+  score_b: number;
+  mvp?: string;
+  players: { name: string; team: "A" | "B"; goals: number; is_gk: boolean }[];
 }
 
 export interface PublicWeek {

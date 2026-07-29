@@ -1,7 +1,10 @@
 import { supabase } from "./supabase";
 import type {
+  PublicStats,
   PublicWeek,
+  RecordMatchInput,
   SignupStatus,
+  Stats,
   TurnoDetail,
   TurnoSummary,
   User,
@@ -190,4 +193,41 @@ export async function dropSpot(token: string, name: string) {
     p_name: name,
   });
   if (error) throw new Error(error.message);
+}
+
+// ---- Estadísticas ----
+export async function recordMatch(turnoId: string, match: RecordMatchInput) {
+  const s = getSession();
+  const { error } = await supabase.rpc("mt_record_match", {
+    p_session: s,
+    p_turno_id: turnoId,
+    p_match: match,
+  });
+  if (error) throw new Error(error.message);
+}
+
+export async function deleteMatch(matchId: string) {
+  const s = getSession();
+  const { error } = await supabase.rpc("mt_delete_match", {
+    p_session: s,
+    p_match_id: matchId,
+  });
+  if (error) throw new Error(error.message);
+}
+
+export async function getStatsAdmin(turnoId: string): Promise<Stats> {
+  const s = getSession();
+  const { data, error } = await supabase.rpc("mt_get_stats_admin", {
+    p_session: s,
+    p_turno_id: turnoId,
+  });
+  return unwrap(data, error) as Stats;
+}
+
+export async function getStats(statsToken: string): Promise<PublicStats | null> {
+  const { data, error } = await supabase.rpc("mt_get_stats", {
+    p_stats_token: statsToken,
+  });
+  if (error) throw new Error(error.message);
+  return data as PublicStats | null;
 }

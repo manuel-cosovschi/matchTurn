@@ -17,6 +17,7 @@ import {
   turnoDetail,
 } from "@/lib/api";
 import { formatMatchDate, formatSchedule, timeUntil } from "@/lib/format";
+import { StatsSection } from "@/components/StatsSection";
 import { WEEKDAYS } from "@/lib/types";
 import type { AdminSignup, TurnoDetail, TurnoSummary, User } from "@/lib/types";
 
@@ -642,9 +643,11 @@ function TurnoView({
         </section>
       )}
 
+      <StatsSection turnoId={turnoId} statsToken={detail.turno.stats_token} />
+
       <button
         onClick={onDelete}
-        className="mt-6 w-full text-center text-xs text-red-400/70 underline"
+        className="mt-8 w-full text-center text-xs text-red-400/70 underline"
       >
         Eliminar este turno
       </button>
