@@ -1,0 +1,233 @@
+import { supabase } from "./supabase";
+import type {
+  PublicStats,
+  PublicWeek,
+  RecordMatchInput,
+  SignupStatus,
+  Stats,
+  TurnoDetail,
+  TurnoSummary,
+  User,
+} from "./types";
+
+const SESSION_KEY = "mt_session";
+
+export function getSession(): string | null {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem(SESSION_KEY);
+}
+export function setSession(token: string) {
+  localStorage.setItem(SESSION_KEY, token);
+}
+export function clearSession() {
+  localStorage.removeItem(SESSION_KEY);
+}
+
+function unwrap<T>(data: T, error: { message: string } | null): T {
+  if (error) throw new Error(error.message);
+  return data;
+}
+
+// ---- Auth ----
+export async function register(email: string, password: string, name: string) {
+  const { data, error } = await supabase.rpc("mt_register", {
+    p_email: email,
+    p_password: password,
+    p_name: name,
+  });
+  const token = unwrap(data, error) as string;
+  setSession(token);
+  return token;
+}
+
+export async function login(email: string, password: string) {
+  const { data, error } = await supabase.rpc("mt_login", {
+    p_email: email,
+    p_password: password,
+  });
+  const token = unwrap(data, error) as string;
+  setSession(token);
+  return token;
+}
+
+export async function logout() {
+  const s = getSession();
+  if (s) await supabase.rpc("mt_logout", { p_session: s });
+  clearSession();
+}
+
+export async function changePassword(oldPass: string, newPass: string) {
+  const s = getSession();
+  const { error } = await supabase.rpc("mt_change_password", {
+    p_session: s,
+    p_old: oldPass,
+    p_new: newPass,
+  });
+  if (error) throw new Error(error.message);
+}
+
+export async function me(): Promise<User | null> {
+  const s = getSession();
+  if (!s) return null;
+  const { data, error } = await supabase.rpc("mt_me", { p_session: s });
+  if (error) return null;
+  return data as User | null;
+}
+
+// ---- Turnos (panel) ----
+export async function listTurnos(): Promise<TurnoSummary[]> {
+  const s = getSession();
+  const { data, error } = await supabase.rpc("mt_list_turnos", { p_session: s });
+  return unwrap(data, error) as TurnoSummary[];
+}
+
+export async function createTurno(input: {
+  title: string;
+  location: string;
+  weekday: number;
+  time: string;
+  capacity: number;
+  tz?: string;
+}): Promise<string> {
+  const s = getSession();
+  const { data, error } = await supabase.rpc("mt_create_turno", {
+    p_session: s,
+    p_title: input.title,
+    p_location: input.location,
+    p_weekday: input.weekday,
+    p_time: input.time,
+    p_capacity: input.capacity,
+    p_tz: input.tz ?? "America/Argentina/Buenos_Aires",
+  });
+  return unwrap(data, error) as string;
+}
+
+export async function updateTurno(input: {
+  id: string;
+  title: string;
+  location: string;
+  weekday: number;
+  time: string;
+  capacity: number;
+}) {
+  const s = getSession();
+  const { error } = await supabase.rpc("mt_update_turno", {
+    p_session: s,
+    p_turno_id: input.id,
+    p_title: input.title,
+    p_location: input.location,
+    p_weekday: input.weekday,
+    p_time: input.time,
+    p_capacity: input.capacity,
+  });
+  if (error) throw new Error(error.message);
+}
+
+export async function deleteTurno(id: string) {
+  const s = getSession();
+  const { error } = await supabase.rpc("mt_delete_turno", {
+    p_session: s,
+    p_turno_id: id,
+  });
+  if (error) throw new Error(error.message);
+}
+
+export async function turnoDetail(turnoId: string): Promise<TurnoDetail> {
+  const s = getSession();
+  const { data, error } = await supabase.rpc("mt_turno_detail", {
+    p_session: s,
+    p_turno_id: turnoId,
+  });
+  return unwrap(data, error) as TurnoDetail;
+}
+
+export async function removeSignup(signupId: string) {
+  const s = getSession();
+  const { error } = await supabase.rpc("mt_remove_signup", {
+    p_session: s,
+    p_signup_id: signupId,
+  });
+  if (error) throw new Error(error.message);
+}
+
+export async function setWeekCancelled(weekId: string, cancelled: boolean) {
+  const s = getSession();
+  const { error } = await supabase.rpc("mt_set_week_cancelled", {
+    p_session: s,
+    p_week_id: weekId,
+    p_cancelled: cancelled,
+  });
+  if (error) throw new Error(error.message);
+}
+
+export async function generateWeek(turnoId: string): Promise<string> {
+  const s = getSession();
+  const { data, error } = await supabase.rpc("mt_generate_week", {
+    p_session: s,
+    p_turno_id: turnoId,
+  });
+  return unwrap(data, error) as string;
+}
+
+// ---- Público (link de jugadores) ----
+export async function getWeek(token: string): Promise<PublicWeek | null> {
+  const { data, error } = await supabase.rpc("mt_get_week", { p_token: token });
+  if (error) throw new Error(error.message);
+  return data as PublicWeek | null;
+}
+
+export async function confirmSpot(
+  token: string,
+  name: string
+): Promise<{ status: SignupStatus; name: string }> {
+  const { data, error } = await supabase.rpc("mt_confirm", {
+    p_token: token,
+    p_name: name,
+  });
+  return unwrap(data, error) as { status: SignupStatus; name: string };
+}
+
+export async function dropSpot(token: string, name: string) {
+  const { error } = await supabase.rpc("mt_drop", {
+    p_token: token,
+    p_name: name,
+  });
+  if (error) throw new Error(error.message);
+}
+
+// ---- Estadísticas ----
+export async function recordMatch(turnoId: string, match: RecordMatchInput) {
+  const s = getSession();
+  const { error } = await supabase.rpc("mt_record_match", {
+    p_session: s,
+    p_turno_id: turnoId,
+    p_match: match,
+  });
+  if (error) throw new Error(error.message);
+}
+
+export async function deleteMatch(matchId: string) {
+  const s = getSession();
+  const { error } = await supabase.rpc("mt_delete_match", {
+    p_session: s,
+    p_match_id: matchId,
+  });
+  if (error) throw new Error(error.message);
+}
+
+export async function getStatsAdmin(turnoId: string): Promise<Stats> {
+  const s = getSession();
+  const { data, error } = await supabase.rpc("mt_get_stats_admin", {
+    p_session: s,
+    p_turno_id: turnoId,
+  });
+  return unwrap(data, error) as Stats;
+}
+
+export async function getStats(statsToken: string): Promise<PublicStats | null> {
+  const { data, error } = await supabase.rpc("mt_get_stats", {
+    p_stats_token: statsToken,
+  });
+  if (error) throw new Error(error.message);
+  return data as PublicStats | null;
+}
